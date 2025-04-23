@@ -12,7 +12,7 @@ pub struct AsyncEDFReader<T: AsyncFileReader> {
 }
 
 impl<T: 'static + AsyncFileReader + Send + Sync + Clone> AsyncEDFReader<T> {
-   /**
+    /**
     Init an EDFReader with a custom FileReader.
     It can be usefull if the EDF file is not located in the system file. (ie : we cannot use RandomAccessFile).
     An example of use : read the file with DOM FileAPI in Webassembly
@@ -20,36 +20,32 @@ impl<T: 'static + AsyncFileReader + Send + Sync + Clone> AsyncEDFReader<T> {
     pub fn init_with_file_reader(
         file_reader: T,
     ) -> Box<dyn Future<Item = AsyncEDFReader<T>, Error = std::io::Error> + Send> {
-        let reader_clone_for_channels = file_reader; 
+        let reader_clone_for_channels = file_reader;
         let reader_final = reader_clone_for_channels.clone();
-        Box::new(
-            reader_clone_for_channels
-                .read_async(0, 256)
-                .and_then(move |general_header_raw: Vec<u8>| {
-                    let mut edf_header = EDFHeader::build_general_header(general_header_raw);
-                    let channel_header_len = edf_header.number_of_signals * EDF_HEADER_BYTE_SIZE as u64;
+        Box::new(reader_clone_for_channels.read_async(0, 256).and_then(
+            move |general_header_raw: Vec<u8>| {
+                let mut edf_header = EDFHeader::build_general_header(general_header_raw);
+                let channel_header_len = edf_header.number_of_signals * EDF_HEADER_BYTE_SIZE as u64;
 
-                    reader_final 
-                        .read_async(256, channel_header_len)
-                        .and_then(move |channel_headers_raw| {
-                            edf_header.build_channel_headers(channel_headers_raw);
-                            ok(AsyncEDFReader {
-                                edf_header: edf_header,
-                                file_reader: reader_final,
-                            })
+                reader_final.read_async(256, channel_header_len).and_then(
+                    move |channel_headers_raw| {
+                        edf_header.build_channel_headers(channel_headers_raw);
+                        ok(AsyncEDFReader {
+                            edf_header: edf_header,
+                            file_reader: reader_final,
                         })
-                })
-        )
+                    },
+                )
+            },
+        ))
     }
-
 
     /// Reads a window of EDF data asynchronously.
     pub fn read_data_window(
         &self,
-        start_time_ms: u64, 
+        start_time_ms: u64,
         duration_ms: u64,
     ) -> Box<dyn Future<Item = Vec<Vec<f32>>, Error = std::io::Error> + Send> {
-        
         if let Err(e) = super::check_bounds(start_time_ms, duration_ms, &self.edf_header) {
             return Box::new(err::<Vec<Vec<f32>>, Error>(e));
         }
@@ -69,7 +65,8 @@ impl<T: 'static + AsyncFileReader + Send + Sync + Clone> AsyncEDFReader<T> {
             .file_reader
             .read_async(offset, length_to_read)
             .and_then(move |data: Vec<u8>| -> Result<Vec<Vec<f32>>, Error> {
-                let mut result: Vec<Vec<f32>> = Vec::with_capacity(header.number_of_signals as usize);
+                let mut result: Vec<Vec<f32>> =
+                    Vec::with_capacity(header.number_of_signals as usize);
                 for _ in 0..header.number_of_signals {
                     result.push(Vec::new());
                 }

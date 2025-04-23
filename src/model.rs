@@ -6,7 +6,7 @@ use chrono::Utc;
 
 pub const EDF_HEADER_BYTE_SIZE: usize = 256;
 
-#[derive(Serialize, Deserialize, Debug,Clone,PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct EDFChannel {
     pub label: String,                         // 16 ascii
     pub transducter_type: String,              // 80 ascii
@@ -25,7 +25,7 @@ pub struct EDFChannel {
  *  - 256 bytes of common metadata
  *  - NumberOfChannels * channel metadata = N * 256 bytes
  */
-#[derive(Serialize, Deserialize, Debug,Clone,PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct EDFHeader {
     pub file_version: String,
     pub local_patient_identification: String,
