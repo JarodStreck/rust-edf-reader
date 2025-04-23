@@ -74,12 +74,26 @@ impl<T: SyncFileReader> SyncEDFReader<T> {
 
         let mut index = 0;
 
-        for _ in 0..number_of_blocks_to_get {
+        for _block_idx in 0..number_of_blocks_to_get { // Added block index for clarity if needed
             for (j, channel) in self.edf_header.channels.iter().enumerate() {
-                for _ in 0..channel.number_of_samples_in_data_record {
-                    let sample = super::get_sample(&data, index) as f32;
+                for _sample_in_record_idx in 0..channel.number_of_samples_in_data_record { // Added sample index for clarity if needed
+                    // Call the updated get_sample and handle the Result
+                    let digital_sample = match super::get_sample(&data, index) {
+                        // Cast the sample to f32
+                        Ok(s) => s as f32,
+                        Err(e) => {
+                             
+                             eprintln!(
+                                 "Error reading digital sample at byte index {}: {}",
+                                 index * 2, // Approx byte index
+                                 e
+                             );
+                            
+                             return Err(e);
+                        }
+                    };
                     result[j].push(
-                        (sample - channel.digital_minimum as f32) * channel.scale_factor
+                        (digital_sample - channel.digital_minimum as f32) * channel.scale_factor
                             + channel.physical_minimum,
                     );
                     index += 1;
